@@ -79,11 +79,20 @@ def _prune_verdict_to_schema(verdict: dict, schema: dict) -> dict:
     finding_schema = schema.get("$defs", {}).get("finding", {})
     finding_allowed = set(finding_schema.get("properties", {}).keys())
     if isinstance(pruned.get("findings"), list):
-        pruned["findings"] = [
-            {key: value for key, value in finding.items() if key in finding_allowed}
-            for finding in pruned["findings"]
-            if isinstance(finding, dict)
-        ]
+        normalized_findings = []
+        for finding in verdict.get("findings", []):
+            if not isinstance(finding, dict):
+                continue
+            compact = {key: value for key, value in finding.items() if key in finding_allowed}
+            if "summary" not in compact:
+                compact["summary"] = (
+                    finding.get("title")
+                    or finding.get("description")
+                    or finding.get("reasoning")
+                    or "Model reported a finding without a summary."
+                )
+            normalized_findings.append(compact)
+        pruned["findings"] = normalized_findings
     return pruned
 
 
@@ -97,10 +106,7 @@ def _normalize_findings(verdict: dict) -> None:
         finding.setdefault("category", "other")
         finding.setdefault(
             "summary",
-            finding.get("title")
-            or finding.get("description")
-            or finding.get("reasoning")
-            or "Model reported a finding without a summary.",
+            "Model reported a finding without a summary.",
         )
         finding.setdefault("acceptance_criteria_ids", [])
         finding.setdefault("edge_case_ids", [])
