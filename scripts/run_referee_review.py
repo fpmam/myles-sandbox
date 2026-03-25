@@ -87,6 +87,28 @@ def _prune_verdict_to_schema(verdict: dict, schema: dict) -> dict:
     return pruned
 
 
+def _normalize_findings(verdict: dict) -> None:
+    normalized = []
+    for index, finding in enumerate(verdict.get("findings", []), start=1):
+        if not isinstance(finding, dict):
+            continue
+        finding.setdefault("finding_id", f"RF-{index:03d}")
+        finding.setdefault("severity", "minor")
+        finding.setdefault("category", "other")
+        finding.setdefault(
+            "summary",
+            finding.get("title")
+            or finding.get("description")
+            or finding.get("reasoning")
+            or "Model reported a finding without a summary.",
+        )
+        finding.setdefault("acceptance_criteria_ids", [])
+        finding.setdefault("edge_case_ids", [])
+        finding.setdefault("blocking", finding.get("severity") in {"major", "critical"})
+        normalized.append(finding)
+    verdict["findings"] = normalized
+
+
 def build_payload(repo_root: Path, issue_id: str, pr_number: int, head_sha: str) -> dict:
     context = load_review_context(repo_root, issue_id)
     pr_evidence_path = repo_root / ".symphony" / "pr-evidence" / f"{context.issue_id}.md"
@@ -144,6 +166,7 @@ def main() -> None:
     verdict.setdefault("pr_number", args.pr_number)
     verdict.setdefault("head_sha", args.head_sha)
     verdict.setdefault("findings", [])
+    _normalize_findings(verdict)
     verdict.setdefault("confidence", 0.0 if verdict.get("verdict") == "Unavailable" else 0.5)
     if "review_passed" not in verdict:
         verdict["review_passed"] = verdict.get("verdict") == "Pass"
