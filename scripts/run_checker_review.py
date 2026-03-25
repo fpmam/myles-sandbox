@@ -32,6 +32,18 @@ def _fallback_allowed(risk_flags: list[str]) -> bool:
     return not any(flag in {"recent_referee_miss_subsystem", "needs_replan_history"} for flag in risk_flags)
 
 
+def determine_review_mode(risk_flags: list[str], referee_verdict: dict) -> str | None:
+    if referee_verdict.get("verdict") == "Unavailable":
+        if not _fallback_allowed(risk_flags):
+            raise ReviewError("Referee fallback is not allowed for the current risk flags")
+        return "fallback"
+    if not _checker_required(risk_flags, referee_verdict):
+        return None
+    if referee_verdict.get("review_passed") is not True:
+        raise ReviewError("Checker standard review requires a passing referee verdict")
+    return "standard"
+
+
 def _normalize_finding(finding: dict, index: int) -> dict:
     normalized = dict(finding)
     normalized.setdefault("finding_id", f"CF-{index:03d}")
@@ -153,6 +165,7 @@ def main() -> None:
     parser.add_argument("--referee-verdict-path", required=True)
     parser.add_argument("--output-path", required=True)
     parser.add_argument("--simulate-response-file")
+    parser.add_argument("--allow-skip", action="store_true")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
@@ -163,16 +176,12 @@ def main() -> None:
     referee_verdict = load_json(referee_verdict_path)
 
     risk_flags = list(context.snapshot.get("risk_flags", []))
-    if referee_verdict.get("verdict") == "Unavailable":
-        if not _fallback_allowed(risk_flags):
-            raise ReviewError("Referee fallback is not allowed for the current risk flags")
-        review_mode = "fallback"
-    else:
-        if not _checker_required(risk_flags, referee_verdict):
-            raise ReviewError("Checker review is not required for this ticket")
-        if referee_verdict.get("review_passed") is not True:
-            raise ReviewError("Checker standard review requires a passing referee verdict")
-        review_mode = "standard"
+    review_mode = determine_review_mode(risk_flags, referee_verdict)
+    if review_mode is None:
+        if args.allow_skip:
+            print("checker review skipped: not required for this ticket")
+            return
+        raise ReviewError("Checker review is not required for this ticket")
 
     payload = {
         "repo_root": str(repo_root),

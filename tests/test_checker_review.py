@@ -209,3 +209,52 @@ def test_checker_review_fallback_mode(tmp_path: Path) -> None:
     verdict = json.loads(output_path.read_text())
     assert verdict["review_mode"] == "fallback"
     assert verdict["agreement_with_referee"] == "n_a"
+
+
+def test_checker_review_skips_cleanly_when_not_required(tmp_path: Path) -> None:
+    repo, referee_path = _init_repo(tmp_path, ["none"])
+    _write_json(
+        referee_path,
+        {
+            "schema_version": "1.0",
+            "issue_id": "AND-270",
+            "repo": "fpmam/myles-sandbox",
+            "contract_snapshot_hash": "hash-270",
+            "review_stage": "pr",
+            "pr_number": 27,
+            "head_sha": "abc123",
+            "verdict": "Pass",
+            "explanation": "Referee passed.",
+            "confidence": 0.8,
+            "findings": [],
+            "review_passed": True,
+            "reviewed_at": "2026-03-25T21:00:00Z",
+        },
+    )
+    output_path = repo / ".artifacts" / "checker-verdict.json"
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "run_checker_review.py"),
+            "--repo-root",
+            str(repo),
+            "--issue-id",
+            "AND-270",
+            "--pr-number",
+            "27",
+            "--head-sha",
+            "abc123",
+            "--referee-verdict-path",
+            str(referee_path),
+            "--allow-skip",
+            "--output-path",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "skipped" in result.stdout
+    assert not output_path.exists()
