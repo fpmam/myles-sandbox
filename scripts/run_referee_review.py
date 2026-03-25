@@ -125,14 +125,17 @@ def main() -> None:
     prompt = load_agent_prompt(repo_root / "ops" / "agents" / "claude-referee.md")
     payload = build_payload(repo_root, args.issue_id, args.pr_number, args.head_sha)
 
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
     if args.simulate_response_file:
         response_text = _simulated_response(Path(args.simulate_response_file).resolve())
     else:
         response_text = _anthropic_request(prompt, payload, args.model)
+    (output_path.parent / "referee-raw-response.txt").write_text(response_text)
 
-    verdict = extract_json_object(response_text)
+    raw_verdict = extract_json_object(response_text)
     schema = load_schema(repo_root, "referee-verdict.schema.json")
-    verdict = _prune_verdict_to_schema(verdict, schema)
+    verdict = _prune_verdict_to_schema(raw_verdict, schema)
     verdict.setdefault("schema_version", "1.0")
     verdict.setdefault("issue_id", payload["issue_id"])
     verdict.setdefault("repo", payload["repo"])
@@ -140,6 +143,10 @@ def main() -> None:
     verdict.setdefault("review_stage", "pr")
     verdict.setdefault("pr_number", args.pr_number)
     verdict.setdefault("head_sha", args.head_sha)
+    verdict.setdefault(
+        "explanation",
+        raw_verdict.get("summary") or raw_verdict.get("reasoning") or "No explanation provided by referee model.",
+    )
     verdict.setdefault("reviewed_at", utc_now())
 
     validate_json(verdict, schema, "referee verdict")
