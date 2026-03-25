@@ -114,16 +114,96 @@ def _normalize_verdict(verdict: dict, payload: dict, review_mode: str) -> dict:
     return pruned
 
 
-def _codex_output_schema(schema: object) -> object:
-    if isinstance(schema, dict):
-        return {
-            key: _codex_output_schema(value)
-            for key, value in schema.items()
-            if key != "uniqueItems"
-        }
-    if isinstance(schema, list):
-        return [_codex_output_schema(item) for item in schema]
-    return schema
+def _codex_output_schema(review_mode: str) -> dict:
+    agreement_values = ["n_a"] if review_mode == "fallback" else ["corroborates", "disputes"]
+    return {
+        "type": "object",
+        "additionalProperties": False,
+        "required": [
+            "verdict",
+            "review_mode",
+            "agreement_with_referee",
+            "explanation",
+            "confidence",
+            "findings",
+            "review_passed",
+        ],
+        "properties": {
+            "verdict": {
+                "type": "string",
+                "enum": ["Pass", "Fail", "Low Confidence", "Unavailable", "Needs Product Decision"],
+            },
+            "review_mode": {
+                "type": "string",
+                "const": review_mode,
+            },
+            "agreement_with_referee": {
+                "type": "string",
+                "enum": agreement_values,
+            },
+            "explanation": {
+                "type": "string",
+            },
+            "confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+            },
+            "review_passed": {
+                "type": "boolean",
+            },
+            "findings": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "finding_id",
+                        "severity",
+                        "category",
+                        "summary",
+                        "acceptance_criteria_ids",
+                        "edge_case_ids",
+                        "evidence",
+                        "blocking",
+                    ],
+                    "properties": {
+                        "finding_id": {"type": "string"},
+                        "severity": {
+                            "type": "string",
+                            "enum": ["info", "minor", "major", "critical"],
+                        },
+                        "category": {
+                            "type": "string",
+                            "enum": [
+                                "acceptance",
+                                "edge_case",
+                                "risk",
+                                "migration",
+                                "rollback",
+                                "plan_deviation",
+                                "other",
+                            ],
+                        },
+                        "summary": {"type": "string"},
+                        "acceptance_criteria_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "edge_case_ids": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "evidence": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                        },
+                        "blocking": {"type": "boolean"},
+                    },
+                },
+            },
+        },
+    }
 
 
 def _run_codex(prompt: str, repo_root: Path, output_schema: Path, output_path: Path) -> str:
@@ -209,8 +289,7 @@ def main() -> None:
     else:
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
             schema_path = Path(handle.name)
-        schema = load_schema(repo_root, "checker-verdict.schema.json")
-        schema_path.write_text(json.dumps(_codex_output_schema(schema), indent=2))
+        schema_path.write_text(json.dumps(_codex_output_schema(review_mode), indent=2))
         response_text = _run_codex(
             _build_prompt(repo_root, review_mode, referee_verdict_path if review_mode == "standard" else None),
             repo_root,

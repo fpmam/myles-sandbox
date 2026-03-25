@@ -18,35 +18,16 @@ def _write_json(path: Path, payload: dict) -> None:
     _write(path, json.dumps(payload, indent=2))
 
 
-def test_codex_output_schema_strips_unique_items() -> None:
+def test_codex_output_schema_matches_codex_subset_rules() -> None:
     sys.path.insert(0, str(ROOT / "scripts"))
     from scripts.run_checker_review import _codex_output_schema
 
-    schema = {
-        "type": "object",
-        "properties": {
-            "items": {
-                "type": "array",
-                "uniqueItems": True,
-                "items": {"type": "string"},
-            }
-        },
-        "allOf": [
-            {
-                "properties": {
-                    "tags": {
-                        "type": "array",
-                        "uniqueItems": True,
-                        "items": {"type": "string"},
-                    }
-                }
-            }
-        ],
-    }
-
-    sanitized = _codex_output_schema(schema)
-    assert "uniqueItems" not in sanitized["properties"]["items"]
-    assert "uniqueItems" not in sanitized["allOf"][0]["properties"]["tags"]
+    schema = _codex_output_schema("standard")
+    assert sorted(schema["required"]) == sorted(schema["properties"].keys())
+    finding_schema = schema["properties"]["findings"]["items"]
+    assert sorted(finding_schema["required"]) == sorted(finding_schema["properties"].keys())
+    assert "uniqueItems" not in json.dumps(schema)
+    assert schema["properties"]["review_mode"]["const"] == "standard"
 
 
 def _snapshot(risk_flags: list[str]) -> dict:
