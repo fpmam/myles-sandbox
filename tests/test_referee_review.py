@@ -184,3 +184,51 @@ def test_run_referee_review_rejects_invalid_verdict(tmp_path: Path) -> None:
 
     assert result.returncode == 1
     assert "schema validation" in result.stderr
+
+
+def test_run_referee_review_prunes_extra_fields(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    simulated_response = repo / "response.json"
+    simulated_response.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "issue_id": "AND-260",
+                "repo": "fpmam/myles-sandbox",
+                "contract_snapshot_hash": "hash-123",
+                "review_stage": "pr",
+                "pr_number": 26,
+                "head_sha": "abc123",
+                "summary": "Noise from the model that should be dropped.",
+                "verdict": "Pass",
+                "explanation": "Synthetic evidence is coherent.",
+                "confidence": 0.91,
+                "findings": [],
+                "review_passed": True,
+                "reviewed_at": "2026-03-25T21:30:00Z",
+            }
+        )
+    )
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "run_referee_review.py"),
+            "--repo-root",
+            str(repo),
+            "--issue-id",
+            "AND-260",
+            "--pr-number",
+            "26",
+            "--head-sha",
+            "abc123",
+            "--simulate-response-file",
+            str(simulated_response),
+            "--output-path",
+            str(repo / ".artifacts" / "referee-verdict.json"),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr

@@ -73,6 +73,20 @@ def _simulated_response(path: Path) -> str:
     return path.read_text()
 
 
+def _prune_verdict_to_schema(verdict: dict, schema: dict) -> dict:
+    allowed = set(schema.get("properties", {}).keys())
+    pruned = {key: value for key, value in verdict.items() if key in allowed}
+    finding_schema = schema.get("$defs", {}).get("finding", {})
+    finding_allowed = set(finding_schema.get("properties", {}).keys())
+    if isinstance(pruned.get("findings"), list):
+        pruned["findings"] = [
+            {key: value for key, value in finding.items() if key in finding_allowed}
+            for finding in pruned["findings"]
+            if isinstance(finding, dict)
+        ]
+    return pruned
+
+
 def build_payload(repo_root: Path, issue_id: str, pr_number: int, head_sha: str) -> dict:
     context = load_review_context(repo_root, issue_id)
     pr_evidence_path = repo_root / ".symphony" / "pr-evidence" / f"{context.issue_id}.md"
@@ -117,6 +131,8 @@ def main() -> None:
         response_text = _anthropic_request(prompt, payload, args.model)
 
     verdict = extract_json_object(response_text)
+    schema = load_schema(repo_root, "referee-verdict.schema.json")
+    verdict = _prune_verdict_to_schema(verdict, schema)
     verdict.setdefault("schema_version", "1.0")
     verdict.setdefault("issue_id", payload["issue_id"])
     verdict.setdefault("repo", payload["repo"])
@@ -126,7 +142,7 @@ def main() -> None:
     verdict.setdefault("head_sha", args.head_sha)
     verdict.setdefault("reviewed_at", utc_now())
 
-    validate_json(verdict, load_schema(repo_root, "referee-verdict.schema.json"), "referee verdict")
+    validate_json(verdict, schema, "referee verdict")
     write_json(output_path, verdict)
     print(f"wrote referee verdict to {output_path}")
 
