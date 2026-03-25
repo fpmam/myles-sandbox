@@ -102,8 +102,31 @@ def _normalize_findings(verdict: dict) -> None:
         if not isinstance(finding, dict):
             continue
         finding.setdefault("finding_id", f"RF-{index:03d}")
-        finding.setdefault("severity", "minor")
-        finding.setdefault("category", "other")
+        severity = str(finding.get("severity", "minor")).lower()
+        finding["severity"] = {
+            "info": "info",
+            "minor": "minor",
+            "low": "minor",
+            "medium": "major",
+            "major": "major",
+            "high": "critical",
+            "critical": "critical",
+        }.get(severity, "minor")
+        category = str(finding.get("category", "other")).lower()
+        if "accept" in category:
+            finding["category"] = "acceptance"
+        elif "edge" in category:
+            finding["category"] = "edge_case"
+        elif "risk" in category:
+            finding["category"] = "risk"
+        elif "migr" in category:
+            finding["category"] = "migration"
+        elif "rollback" in category:
+            finding["category"] = "rollback"
+        elif "deviation" in category or category == "plan":
+            finding["category"] = "plan_deviation"
+        else:
+            finding["category"] = "other"
         finding.setdefault(
             "summary",
             "Model reported a finding without a summary.",

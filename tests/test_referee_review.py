@@ -353,6 +353,7 @@ def test_run_referee_review_normalizes_sparse_findings(tmp_path: Path) -> None:
                     {
                         "title": "Missing edge-case evidence",
                         "severity": "major",
+                        "category": "contract_match",
                     }
                 ],
             }
@@ -386,3 +387,4 @@ def test_run_referee_review_normalizes_sparse_findings(tmp_path: Path) -> None:
     assert verdict["review_passed"] is False
     assert verdict["findings"][0]["summary"] == "Missing edge-case evidence"
     assert verdict["findings"][0]["blocking"] is True
+    assert verdict["findings"][0]["category"] == "other"
