@@ -21,7 +21,7 @@ from review_common import (
 )
 
 
-DEFAULT_MODEL = "claude-3-5-sonnet-latest"
+DEFAULT_MODEL = "claude-sonnet-4-20250514"
 
 
 def _anthropic_request(prompt: str, payload: dict, model: str) -> str:
