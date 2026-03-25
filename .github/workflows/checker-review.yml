@@ -1,0 +1,80 @@
+name: Codex Checker Review
+
+on:
+  workflow_run:
+    workflows:
+      - Claude Referee Review
+    types:
+      - completed
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  checker-review:
+    name: checker-review
+    if: ${{ github.event.workflow_run.event == 'pull_request' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          npm install -g @openai/codex
+
+      - name: Restore Codex auth
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          mkdir -p ~/.codex
+          printf '%s' "$CODEX_AUTH_JSON" > ~/.codex/auth.json
+          cat > ~/.codex/config.toml <<'EOF'
+          model = "gpt-5.4"
+          model_reasoning_effort = "low"
+          approval_policy = "never"
+          sandbox_mode = "danger-full-access"
+          EOF
+
+      - name: Download referee artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh run download "${{ github.event.workflow_run.id }}" \
+            -R "${{ github.repository }}" \
+            -n referee-verdict \
+            -D .artifacts/referee
+
+      - name: Run Codex Checker
+        run: |
+          python scripts/run_checker_review.py \
+            --pr-number "${{ github.event.workflow_run.pull_requests[0].number }}" \
+            --head-sha "${{ github.event.workflow_run.head_sha }}" \
+            --referee-verdict-path ".artifacts/referee/referee-verdict.json" \
+            --output-path ".artifacts/checker/checker-verdict.json"
+
+      - name: Upload checker verdict
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checker-verdict
+          path: .artifacts/checker/
+          if-no-files-found: error
+          include-hidden-files: true
