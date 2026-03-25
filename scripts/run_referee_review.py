@@ -4,10 +4,12 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from pathlib import Path
 
+from referee_unavailability import parse_time, poll_outage, record_notifications, register_outage, save_state, load_state
 from review_common import (
     ReviewError,
     extract_json_object,
@@ -22,6 +24,10 @@ from review_common import (
 
 
 DEFAULT_MODEL = "claude-sonnet-4-20250514"
+
+
+class AnthropicServiceUnavailable(ReviewError):
+    pass
 
 
 def _anthropic_request(prompt: str, payload: dict, model: str) -> str:
@@ -55,9 +61,13 @@ def _anthropic_request(prompt: str, payload: dict, model: str) -> str:
             data = json.loads(response.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
+        if exc.code in {408, 409, 425, 429, 500, 502, 503, 504}:
+            raise AnthropicServiceUnavailable(
+                f"Anthropic request failed with HTTP {exc.code}: {detail}"
+            ) from exc
         raise ReviewError(f"Anthropic request failed with HTTP {exc.code}: {detail}") from exc
     except urllib.error.URLError as exc:
-        raise ReviewError(f"Anthropic request failed: {exc}") from exc
+        raise AnthropicServiceUnavailable(f"Anthropic request failed: {exc}") from exc
 
     parts = []
     for item in data.get("content", []):
@@ -160,6 +170,53 @@ def build_payload(repo_root: Path, issue_id: str, pr_number: int, head_sha: str)
     return payload
 
 
+def _unavailable_verdict(payload: dict, pr_number: int, head_sha: str, message: str) -> dict:
+    return {
+        "schema_version": "1.0",
+        "issue_id": payload["issue_id"],
+        "repo": payload["repo"],
+        "contract_snapshot_hash": payload["contract_snapshot"]["snapshot_hash"],
+        "review_stage": "pr",
+        "pr_number": pr_number,
+        "head_sha": head_sha,
+        "verdict": "Unavailable",
+        "explanation": message,
+        "confidence": 0.0,
+        "findings": [],
+        "review_passed": False,
+        "reviewed_at": utc_now(),
+    }
+
+
+def _sync_unavailability_state(
+    *,
+    state_path: Path | None,
+    issue_id: str,
+    recipient: str,
+    email_log_path: Path | None,
+    send_email: bool,
+    unavailable: bool,
+) -> None:
+    if state_path is None:
+        return
+    now = parse_time(None)
+    state = load_state(state_path)
+    if unavailable:
+        updated, notifications = register_outage(state, issue_id, now)
+        updated, poll_notifications = poll_outage(updated, now, service_available=False)
+        notifications.extend(poll_notifications)
+    else:
+        updated, notifications = poll_outage(state, now, service_available=True)
+    save_state(state_path, updated)
+    record_notifications(
+        notifications,
+        recipient=recipient,
+        email_log_path=email_log_path,
+        send_email=send_email,
+        now=now,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo-root", default=".")
@@ -169,6 +226,12 @@ def main() -> None:
     parser.add_argument("--output-path", required=True)
     parser.add_argument("--model", default=os.getenv("MYLES_ANTHROPIC_MODEL", DEFAULT_MODEL))
     parser.add_argument("--simulate-response-file")
+    parser.add_argument("--unavailable-retries", type=int, default=2)
+    parser.add_argument("--retry-delay-seconds", type=int, default=0)
+    parser.add_argument("--unavailability-state-path")
+    parser.add_argument("--unavailability-recipient", default="a@lll.re")
+    parser.add_argument("--unavailability-email-log-path")
+    parser.add_argument("--send-unavailability-email", action="store_true")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
@@ -177,11 +240,54 @@ def main() -> None:
     payload = build_payload(repo_root, args.issue_id, args.pr_number, args.head_sha)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    state_path = Path(args.unavailability_state_path).resolve() if args.unavailability_state_path else None
+    email_log_path = (
+        Path(args.unavailability_email_log_path).resolve()
+        if args.unavailability_email_log_path
+        else None
+    )
 
     if args.simulate_response_file:
         response_text = _simulated_response(Path(args.simulate_response_file).resolve())
     else:
-        response_text = _anthropic_request(prompt, payload, args.model)
+        last_unavailable_error = None
+        for attempt in range(args.unavailable_retries + 1):
+            try:
+                response_text = _anthropic_request(prompt, payload, args.model)
+                _sync_unavailability_state(
+                    state_path=state_path,
+                    issue_id=payload["issue_id"],
+                    recipient=args.unavailability_recipient,
+                    email_log_path=email_log_path,
+                    send_email=args.send_unavailability_email,
+                    unavailable=False,
+                )
+                break
+            except AnthropicServiceUnavailable as exc:
+                last_unavailable_error = exc
+                if attempt == args.unavailable_retries:
+                    verdict = _unavailable_verdict(
+                        payload,
+                        args.pr_number,
+                        args.head_sha,
+                        f"Anthropic service unavailable after {args.unavailable_retries} retries: {exc}",
+                    )
+                    _sync_unavailability_state(
+                        state_path=state_path,
+                        issue_id=payload["issue_id"],
+                        recipient=args.unavailability_recipient,
+                        email_log_path=email_log_path,
+                        send_email=args.send_unavailability_email,
+                        unavailable=True,
+                    )
+                    write_json(output_path, verdict)
+                    (output_path.parent / "referee-raw-response.txt").write_text(json.dumps(verdict, indent=2))
+                    print(f"wrote referee verdict to {output_path}")
+                    return
+                if args.retry_delay_seconds > 0:
+                    time.sleep(args.retry_delay_seconds)
+        else:  # pragma: no cover - defensive; loop always exits via break/return
+            raise last_unavailable_error or ReviewError("Anthropic request failed unexpectedly")
     (output_path.parent / "referee-raw-response.txt").write_text(response_text)
 
     raw_verdict = extract_json_object(response_text)
