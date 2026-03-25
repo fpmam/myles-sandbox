@@ -143,6 +143,10 @@ def main() -> None:
     verdict.setdefault("review_stage", "pr")
     verdict.setdefault("pr_number", args.pr_number)
     verdict.setdefault("head_sha", args.head_sha)
+    verdict.setdefault("findings", [])
+    verdict.setdefault("confidence", 0.0 if verdict.get("verdict") == "Unavailable" else 0.5)
+    if "review_passed" not in verdict:
+        verdict["review_passed"] = verdict.get("verdict") == "Pass"
     verdict.setdefault(
         "explanation",
         raw_verdict.get("summary") or raw_verdict.get("reasoning") or "No explanation provided by referee model.",

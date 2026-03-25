@@ -282,3 +282,52 @@ def test_run_referee_review_uses_summary_when_explanation_is_missing(tmp_path: P
     assert result.returncode == 0, result.stdout + result.stderr
     verdict = json.loads(output_path.read_text())
     assert verdict["explanation"] == "Use this summary as the explanation."
+
+
+def test_run_referee_review_derives_review_passed_when_missing(tmp_path: Path) -> None:
+    repo = _init_repo(tmp_path)
+    simulated_response = repo / "response.json"
+    simulated_response.write_text(
+        json.dumps(
+            {
+                "schema_version": "1.0",
+                "issue_id": "AND-260",
+                "repo": "fpmam/myles-sandbox",
+                "contract_snapshot_hash": "hash-123",
+                "review_stage": "pr",
+                "pr_number": 26,
+                "head_sha": "abc123",
+                "summary": "The package is coherent.",
+                "verdict": "Pass",
+                "reviewed_at": "2026-03-25T21:30:00Z",
+            }
+        )
+    )
+
+    output_path = repo / ".artifacts" / "referee-verdict.json"
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "scripts" / "run_referee_review.py"),
+            "--repo-root",
+            str(repo),
+            "--issue-id",
+            "AND-260",
+            "--pr-number",
+            "26",
+            "--head-sha",
+            "abc123",
+            "--simulate-response-file",
+            str(simulated_response),
+            "--output-path",
+            str(output_path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    verdict = json.loads(output_path.read_text())
+    assert verdict["review_passed"] is True
+    assert verdict["confidence"] == 0.5
+    assert verdict["findings"] == []
