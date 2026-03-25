@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "MYLES-SYN-001",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "Synthetic proof preserves the health endpoint response"
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "description": "Synthetic proof keeps the health endpoint JSON payload stable"
+    }
+  ],
+  "risk_flags": [
+    "recent_referee_miss_subsystem"
+  ],
+  "snapshotted_at": "2026-03-25T22:00:00Z",
+  "snapshot_hash": "aaa7082d32e5a05d06bd7d49ffa33b60ca54d6dcbb12a1b809b80b7a1898d14b"
+}

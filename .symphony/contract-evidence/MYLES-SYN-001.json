@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "MYLES-SYN-001",
+  "repo": "fpmam/myles-sandbox",
+  "pr_number": 999,
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "aaa7082d32e5a05d06bd7d49ffa33b60ca54d6dcbb12a1b809b80b7a1898d14b",
+  "execution_plan_digest": "a5609b894882106b3783144438b7133860ed65ce5d83db1e5710f36dc17c5dbc",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "test_files": [
+        "test_app.py"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "test_files": [
+        "test_app.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "recent_referee_miss_subsystem"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_declared": false,
+  "plan_deviation_note": null
+}
