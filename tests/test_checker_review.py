@@ -18,6 +18,37 @@ def _write_json(path: Path, payload: dict) -> None:
     _write(path, json.dumps(payload, indent=2))
 
 
+def test_codex_output_schema_strips_unique_items() -> None:
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from scripts.run_checker_review import _codex_output_schema
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "items": {
+                "type": "array",
+                "uniqueItems": True,
+                "items": {"type": "string"},
+            }
+        },
+        "allOf": [
+            {
+                "properties": {
+                    "tags": {
+                        "type": "array",
+                        "uniqueItems": True,
+                        "items": {"type": "string"},
+                    }
+                }
+            }
+        ],
+    }
+
+    sanitized = _codex_output_schema(schema)
+    assert "uniqueItems" not in sanitized["properties"]["items"]
+    assert "uniqueItems" not in sanitized["allOf"][0]["properties"]["tags"]
+
+
 def _snapshot(risk_flags: list[str]) -> dict:
     return {
         "schema_version": "1.0",

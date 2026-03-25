@@ -114,6 +114,18 @@ def _normalize_verdict(verdict: dict, payload: dict, review_mode: str) -> dict:
     return pruned
 
 
+def _codex_output_schema(schema: object) -> object:
+    if isinstance(schema, dict):
+        return {
+            key: _codex_output_schema(value)
+            for key, value in schema.items()
+            if key != "uniqueItems"
+        }
+    if isinstance(schema, list):
+        return [_codex_output_schema(item) for item in schema]
+    return schema
+
+
 def _run_codex(prompt: str, repo_root: Path, output_schema: Path, output_path: Path) -> str:
     command = [
         "codex",
@@ -197,7 +209,8 @@ def main() -> None:
     else:
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as handle:
             schema_path = Path(handle.name)
-        schema_path.write_text((repo_root / "ops" / "schemas" / "checker-verdict.schema.json").read_text())
+        schema = load_schema(repo_root, "checker-verdict.schema.json")
+        schema_path.write_text(json.dumps(_codex_output_schema(schema), indent=2))
         response_text = _run_codex(
             _build_prompt(repo_root, review_mode, referee_verdict_path if review_mode == "standard" else None),
             repo_root,
