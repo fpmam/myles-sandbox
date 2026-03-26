@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -11,6 +12,15 @@ from jsonschema import Draft202012Validator
 
 class GateError(RuntimeError):
     pass
+
+
+def _branch_issue_id() -> str | None:
+    for env_name in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
+        value = os.getenv(env_name, "")
+        match = re.search(r"([A-Za-z]+-\d+)", value)
+        if match:
+            return match.group(1).upper()
+    return None
 
 
 def load_json(path: Path):
@@ -48,6 +58,9 @@ def sha256_file(path: Path) -> str:
 def find_issue_id(repo_root: Path, issue_id: str | None, subdir: str) -> str:
     if issue_id:
         return issue_id
+    branch_issue_id = _branch_issue_id()
+    if branch_issue_id and (repo_root / ".symphony" / subdir / f"{branch_issue_id}.json").exists():
+        return branch_issue_id
     files = sorted((repo_root / ".symphony" / subdir).glob("*.json"))
     stems = {path.stem for path in files}
     if len(stems) != 1:
