@@ -16,6 +16,7 @@ from review_common import (
     load_agent_prompt,
     load_review_context,
     load_schema,
+    quantize_confidence,
     repo_full_name,
     utc_now,
     validate_json,
@@ -302,7 +303,9 @@ def main() -> None:
     verdict.setdefault("head_sha", args.head_sha)
     verdict.setdefault("findings", [])
     _normalize_findings(verdict)
-    verdict.setdefault("confidence", 0.0 if verdict.get("verdict") == "Unavailable" else 0.5)
+    default_confidence = 0.0 if verdict.get("verdict") == "Unavailable" else 0.5
+    quantized_confidence = quantize_confidence(verdict.get("confidence", default_confidence), default_confidence)
+    verdict["confidence"] = quantized_confidence
     if "review_passed" not in verdict:
         verdict["review_passed"] = verdict.get("verdict") == "Pass"
     verdict.setdefault(
@@ -312,6 +315,7 @@ def main() -> None:
     verdict.setdefault("reviewed_at", utc_now())
 
     validate_json(verdict, schema, "referee verdict")
+    verdict["confidence"] = float(quantized_confidence)
     write_json(output_path, verdict)
     print(f"wrote referee verdict to {output_path}")
 

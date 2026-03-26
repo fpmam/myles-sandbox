@@ -4,6 +4,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -25,6 +26,16 @@ class ReviewContext:
 def infer_issue_id(repo_root: Path, explicit_issue_id: str | None = None) -> str:
     if explicit_issue_id:
         return explicit_issue_id
+
+    for env_name in ("GITHUB_HEAD_REF", "GITHUB_REF_NAME"):
+        value = os.getenv(env_name, "")
+        match = re.search(r"([A-Za-z]+-\d+)", value)
+        if match:
+            candidate = match.group(1).upper()
+            snapshot_path = repo_root / ".symphony" / "contract-snapshot" / f"{candidate}.json"
+            plan_path = repo_root / ".symphony" / "execution-plan" / f"{candidate}.json"
+            if snapshot_path.exists() and plan_path.exists():
+                return candidate
 
     candidates: set[str] = set()
     for subdir in ("contract-evidence", "execution-plan", "contract-snapshot"):
@@ -93,6 +104,14 @@ def utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def quantize_confidence(value: object, default: float) -> Decimal:
+    try:
+        numeric = Decimal(str(value))
+    except Exception:  # pragma: no cover - defensive coercion
+        numeric = Decimal(str(default))
+    return numeric.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 def write_json(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n")
@@ -128,4 +147,3 @@ def repo_full_name(repo_root: Path) -> str:
     if match:
         return match.group(1)
     return repo_root.name
-

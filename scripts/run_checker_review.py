@@ -13,6 +13,7 @@ from review_common import (
     extract_json_object,
     load_agent_prompt,
     load_json,
+    quantize_confidence,
     load_review_context,
     load_schema,
     repo_full_name,
@@ -23,9 +24,18 @@ from review_common import (
 
 
 def _checker_required(risk_flags: list[str], referee_verdict: dict) -> bool:
-    return any(flag in {"recent_referee_miss_subsystem", "needs_replan_history"} for flag in risk_flags) or (
-        referee_verdict.get("verdict") == "Low Confidence"
-    )
+    checker_risk_flags = {
+        "migration",
+        "persistence_change",
+        "destructive_action",
+        "interface_contract",
+        "cross_module_refactor",
+        "external_integration",
+        "architectural_risk",
+        "recent_referee_miss_subsystem",
+        "needs_replan_history",
+    }
+    return any(flag in checker_risk_flags for flag in risk_flags) or (referee_verdict.get("verdict") == "Low Confidence")
 
 
 def _fallback_allowed(risk_flags: list[str]) -> bool:
@@ -106,11 +116,13 @@ def _normalize_verdict(verdict: dict, payload: dict, review_mode: str) -> dict:
     if "agreement_with_referee" not in pruned:
         pruned["agreement_with_referee"] = "n_a" if review_mode == "fallback" else "corroborates"
     pruned.setdefault("explanation", verdict.get("summary") or verdict.get("reasoning") or "No explanation provided.")
-    pruned.setdefault("confidence", 0.5)
+    quantized_confidence = quantize_confidence(pruned.get("confidence", 0.5), 0.5)
+    pruned["confidence"] = quantized_confidence
     if "review_passed" not in pruned:
         pruned["review_passed"] = pruned.get("verdict") == "Pass"
     pruned.setdefault("reviewed_at", utc_now())
     validate_json(pruned, schema, "checker verdict")
+    pruned["confidence"] = float(quantized_confidence)
     return pruned
 
 
