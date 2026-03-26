@@ -76,13 +76,19 @@ def run_acceptance(bundle_path: Path, manifest_path: Path) -> None:
             raise SystemExit("Released artifact failed /greet payload acceptance check")
 
 
+def resolve_download_dir(tag: str, download_dir: str | None) -> Path:
+    if download_dir:
+        return Path(download_dir).resolve()
+    return (Path("dist") / "acceptance" / tag).resolve()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--bundle-path")
     parser.add_argument("--manifest-path")
     parser.add_argument("--repo", default="fpmam/myles-sandbox")
     parser.add_argument("--tag")
-    parser.add_argument("--download-dir", default="dist/acceptance")
+    parser.add_argument("--download-dir")
     args = parser.parse_args()
 
     bundle_path = Path(args.bundle_path).resolve() if args.bundle_path else None
@@ -94,7 +100,7 @@ def main() -> None:
         bundle_path, manifest_path = download_release_assets(
             args.repo,
             args.tag,
-            Path(args.download_dir).resolve(),
+            resolve_download_dir(args.tag, args.download_dir),
         )
 
     run_acceptance(bundle_path, manifest_path)
