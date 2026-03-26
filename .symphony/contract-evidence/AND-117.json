@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-117",
+  "repo": "fpmam/myles-sandbox",
+  "pr_number": 3,
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "f80652834626498f69b6a3d6604499ccf6ea019e4ea3faf01393e858fe5e6f61",
+  "execution_plan_digest": "815dd23aa83d37f136986da446c18d0be60a92a7f73f6953bd466e6088f1fa00",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "AC-5",
+      "test_files": [
+        "tests/test_release_bundle.py",
+        "tests/test_accept_release.py"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "EC-2",
+      "test_files": [
+        "test_app.py"
+      ]
+    },
+    {
+      "id": "EC-3",
+      "test_files": [
+        "test_app.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "interface_contract"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_declared": false,
+  "plan_deviation_note": null
+}
