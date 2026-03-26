@@ -4,6 +4,7 @@ import json
 import os
 import re
 from dataclasses import dataclass
+from decimal import Decimal, ROUND_HALF_UP
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -101,6 +102,14 @@ def load_agent_prompt(path: Path) -> str:
 
 def utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def quantize_confidence(value: object, default: float) -> Decimal:
+    try:
+        numeric = Decimal(str(value))
+    except Exception:  # pragma: no cover - defensive coercion
+        numeric = Decimal(str(default))
+    return numeric.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
 
 
 def write_json(path: Path, payload: dict) -> None:
