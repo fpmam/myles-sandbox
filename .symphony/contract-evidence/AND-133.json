@@ -1,0 +1,56 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-133",
+  "repo": "fpmam/myles-sandbox",
+  "pr_number": 5,
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "12ace06aee5932821f0ebbcbaa15143fad67fc3379309f33aebe9ea22860e581",
+  "execution_plan_digest": "273eac8e999c295f5bff057d743c75c713fe1d06097d900e028e88cf9e47396e",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "EC-2",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "EC-3",
+      "test_files": [
+        "tests/test_artifact_hygiene.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "none"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_declared": false,
+  "plan_deviation_note": null
+}
