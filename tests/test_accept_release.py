@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from scripts.accept_release import run_acceptance
+from scripts.accept_release import resolve_download_dir, run_acceptance
 from scripts.build_release_bundle import build_release_bundle
 
 
@@ -25,3 +25,17 @@ def test_run_acceptance_fails_when_bundle_root_is_wrong(tmp_path: Path) -> None:
         assert "Bundle root missing" in str(exc)
     else:
         raise AssertionError("expected SystemExit")
+
+
+def test_resolve_download_dir_defaults_to_tag_scoped_acceptance_path(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+
+    assert resolve_download_dir("sandbox-v2026.03.26-23594946063", None) == (
+        tmp_path / "dist" / "acceptance" / "sandbox-v2026.03.26-23594946063"
+    ).resolve()
+
+
+def test_resolve_download_dir_respects_explicit_path(tmp_path: Path) -> None:
+    explicit = tmp_path / "downloads"
+
+    assert resolve_download_dir("sandbox-v2026.03.26-23594946063", str(explicit)) == explicit.resolve()
