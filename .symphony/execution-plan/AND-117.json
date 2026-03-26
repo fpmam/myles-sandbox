@@ -1,0 +1,71 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-117",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "f80652834626498f69b6a3d6604499ccf6ea019e4ea3faf01393e858fe5e6f61",
+  "brief_link": "https://linear.app/andrewos/issue/AND-117/add-a-greet-endpoint-with-style-validation-and-release-backed",
+  "approach_summary": "Add a JSON /greet endpoint with style validation, document the contract, align Checker triggering with the v7 dual-review rules, and ship a real GitHub release bundle that acceptance can verify later in the Phase 4 run.",
+  "subsystem_ids": [
+    "api"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "AC-5",
+      "planned_checks": [
+        "pytest -q tests/test_release_bundle.py",
+        "python3 scripts/publish_release.py --repo-root . --version 2026.03.26-dryrun --output-dir dist/release-dryrun --dry-run"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "EC-2",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    },
+    {
+      "id": "EC-3",
+      "planned_checks": [
+        "pytest -q test_app.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "interface_contract"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_note": null
+}

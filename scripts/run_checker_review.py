@@ -23,9 +23,18 @@ from review_common import (
 
 
 def _checker_required(risk_flags: list[str], referee_verdict: dict) -> bool:
-    return any(flag in {"recent_referee_miss_subsystem", "needs_replan_history"} for flag in risk_flags) or (
-        referee_verdict.get("verdict") == "Low Confidence"
-    )
+    checker_risk_flags = {
+        "migration",
+        "persistence_change",
+        "destructive_action",
+        "interface_contract",
+        "cross_module_refactor",
+        "external_integration",
+        "architectural_risk",
+        "recent_referee_miss_subsystem",
+        "needs_replan_history",
+    }
+    return any(flag in checker_risk_flags for flag in risk_flags) or (referee_verdict.get("verdict") == "Low Confidence")
 
 
 def _fallback_allowed(risk_flags: list[str]) -> bool:

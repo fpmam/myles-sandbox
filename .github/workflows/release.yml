@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    name: publish-release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compute release version
+        run: |
+          echo "RELEASE_VERSION=$(date -u +%Y.%m.%d)-${GITHUB_RUN_ID}" >> "$GITHUB_ENV"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/publish_release.py \
+            --repo-root . \
+            --version "${RELEASE_VERSION}" \
+            --output-dir dist/release

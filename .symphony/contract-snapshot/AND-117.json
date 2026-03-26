@@ -1,0 +1,47 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-117",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "GET /greet with no params returns 200 and the default Myles greeting JSON payload."
+    },
+    {
+      "id": "AC-2",
+      "description": "GET /greet?name=Andrew returns 200 and echoes the normalized name in the JSON payload."
+    },
+    {
+      "id": "AC-3",
+      "description": "GET /greet?name=andrew&style=shout returns 200 and an uppercase greeting with style shout."
+    },
+    {
+      "id": "AC-4",
+      "description": "Repository docs explain the /greet contract and how to verify it locally."
+    },
+    {
+      "id": "AC-5",
+      "description": "The published release artifact contains the /greet behavior and can be verified by the acceptance script."
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "description": "Whitespace-only name input falls back to Myles."
+    },
+    {
+      "id": "EC-2",
+      "description": "Unsupported style returns 400 with invalid_style and the allowed style list."
+    },
+    {
+      "id": "EC-3",
+      "description": "The existing /health response remains unchanged."
+    }
+  ],
+  "risk_flags": [
+    "interface_contract"
+  ],
+  "snapshotted_at": "2026-03-26T01:05:00Z",
+  "snapshot_hash": "f80652834626498f69b6a3d6604499ccf6ea019e4ea3faf01393e858fe5e6f61"
+}
