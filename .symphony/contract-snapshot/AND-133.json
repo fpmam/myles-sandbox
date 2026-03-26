@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-133",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "The default local release and acceptance workflow no longer leaves dist artifacts as untracked repo noise."
+    },
+    {
+      "id": "AC-2",
+      "description": "The fix preserves the existing local commands that generate release and acceptance artifacts under dist paths."
+    },
+    {
+      "id": "AC-3",
+      "description": "A deterministic local check proves dist artifact paths are ignored while normal tracked repo files remain visible to Git."
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "description": "Previously generated acceptance output under dist stops polluting git status once the ignore rule is present."
+    },
+    {
+      "id": "EC-2",
+      "description": "Default release output under dist/release is ignored without requiring a custom output directory."
+    },
+    {
+      "id": "EC-3",
+      "description": "The ignore rule does not hide tracked repo sources outside dist."
+    }
+  ],
+  "risk_flags": [
+    "none"
+  ],
+  "snapshot_hash": "12ace06aee5932821f0ebbcbaa15143fad67fc3379309f33aebe9ea22860e581",
+  "snapshotted_at": "2026-03-26T12:38:45Z"
+}

@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-133",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "12ace06aee5932821f0ebbcbaa15143fad67fc3379309f33aebe9ea22860e581",
+  "brief_link": "https://linear.app/andrewos/issue/AND-133/ignore-local-release-and-acceptance-dist-outputs-in-myles-sandbox",
+  "approach_summary": "Treat the recurring dist artifact pollution as repo hygiene: ignore dist outputs, add a deterministic Git-based test that proves the intended paths are ignored and tracked sources are not, and keep the change scoped to local workflow cleanliness.",
+  "subsystem_ids": [
+    "workflow"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "EC-2",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    },
+    {
+      "id": "EC-3",
+      "planned_checks": [
+        "pytest -q tests/test_artifact_hygiene.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "none"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_note": null
+}
