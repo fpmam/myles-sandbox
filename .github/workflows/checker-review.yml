@@ -1,0 +1,91 @@
+name: Codex Checker Review
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  actions: read
+  contents: read
+  pull-requests: read
+
+jobs:
+  checker-review:
+    name: checker-review
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          npm install -g @openai/codex
+
+      - name: Restore Codex auth
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+        run: |
+          mkdir -p ~/.codex
+          printf '%s' "$CODEX_AUTH_JSON" > ~/.codex/auth.json
+          cat > ~/.codex/config.toml <<'EOF'
+          model = "gpt-5.4"
+          model_reasoning_effort = "low"
+          approval_policy = "never"
+          sandbox_mode = "danger-full-access"
+          EOF
+
+      - name: Wait for referee review
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/wait_for_check_runs.py \
+            --repo "${{ github.repository }}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --required-check referee-review \
+            --poll-seconds 15 \
+            --timeout-seconds 1800
+
+      - name: Download referee artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/download_referee_artifact.py \
+            --repo "${{ github.repository }}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --output-dir ".artifacts/referee"
+
+      - name: Run Codex Checker
+        run: |
+          python scripts/run_checker_review.py \
+            --pr-number "${{ github.event.pull_request.number }}" \
+            --head-sha "${{ github.event.pull_request.head.sha }}" \
+            --referee-verdict-path ".artifacts/referee/referee-verdict.json" \
+            --allow-skip \
+            --output-path ".artifacts/checker/checker-verdict.json"
+
+      - name: Upload checker verdict
+        if: ${{ always() && hashFiles('.artifacts/checker/checker-verdict.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: checker-verdict
+          path: .artifacts/checker/
+          if-no-files-found: error
+          include-hidden-files: true

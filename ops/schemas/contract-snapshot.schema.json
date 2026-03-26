@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/contract-snapshot.schema.json",
+  "title": "Issue Contract Snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue_id",
+    "repo",
+    "lane_tag",
+    "acceptance_criteria",
+    "edge_cases",
+    "risk_flags",
+    "snapshot_hash",
+    "snapshotted_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "issue_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "lane_tag": {
+      "type": "string",
+      "enum": ["local-app/autonomous", "client/guarded"]
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/contractItem"
+      }
+    },
+    "edge_cases": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/$defs/contractItem"
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "persistence_change",
+          "migration",
+          "destructive_action",
+          "interface_contract",
+          "cross_module_refactor",
+          "external_integration",
+          "architectural_risk",
+          "recent_referee_miss_subsystem",
+          "needs_replan_history"
+        ]
+      }
+    },
+    "snapshot_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "snapshotted_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "contractItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "risk_flags": {
+            "contains": {
+              "const": "none"
+            }
+          }
+        },
+        "required": ["risk_flags"]
+      },
+      "then": {
+        "properties": {
+          "risk_flags": {
+            "maxItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

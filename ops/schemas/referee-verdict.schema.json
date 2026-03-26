@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/referee-verdict.schema.json",
+  "title": "Claude Referee Verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue_id",
+    "repo",
+    "contract_snapshot_hash",
+    "review_stage",
+    "verdict",
+    "explanation",
+    "confidence",
+    "findings",
+    "review_passed",
+    "reviewed_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "issue_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contract_snapshot_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pr_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "head_sha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "review_stage": {
+      "type": "string",
+      "enum": ["plan", "pr"]
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["Pass", "Fail", "Low Confidence", "Unavailable", "Needs Product Decision"]
+    },
+    "explanation": {
+      "type": "string",
+      "minLength": 1
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "multipleOf": 0.01
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/finding"
+      }
+    },
+    "review_passed": {
+      "type": "boolean"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "$defs": {
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finding_id",
+        "severity",
+        "category",
+        "summary",
+        "acceptance_criteria_ids",
+        "edge_case_ids",
+        "blocking"
+      ],
+      "properties": {
+        "finding_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["info", "minor", "major", "critical"]
+        },
+        "category": {
+          "type": "string",
+          "enum": ["acceptance", "edge_case", "risk", "migration", "rollback", "plan_deviation", "other"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "acceptance_criteria_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "edge_case_ids": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "blocking": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "review_stage": {
+            "const": "pr"
+          }
+        },
+        "required": ["review_stage"]
+      },
+      "then": {
+        "required": ["pr_number", "head_sha"]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "Pass"
+          }
+        },
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": {
+          "review_passed": {
+            "const": true
+          },
+          "findings": {
+            "not": {
+              "contains": {
+                "type": "object",
+                "required": ["blocking"],
+                "properties": {
+                  "blocking": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "enum": ["Fail", "Low Confidence", "Needs Product Decision"]
+          }
+        },
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": {
+          "review_passed": {
+            "const": false
+          },
+          "findings": {
+            "minItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "verdict": {
+            "const": "Unavailable"
+          }
+        },
+        "required": ["verdict"]
+      },
+      "then": {
+        "properties": {
+          "review_passed": {
+            "const": false
+          },
+          "confidence": {
+            "const": 0
+          }
+        }
+      }
+    }
+  ]
+}

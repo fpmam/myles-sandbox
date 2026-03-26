@@ -1,0 +1,34 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "MYLES-SYN-001",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "aaa7082d32e5a05d06bd7d49ffa33b60ca54d6dcbb12a1b809b80b7a1898d14b",
+  "brief_link": "obsidian://open?vault=bhduck&file=Myles",
+  "approach_summary": "Synthetic PR proving deterministic gates and review-worker wiring.",
+  "subsystem_ids": [
+    "api"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "planned_checks": [
+        "pytest -q"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "planned_checks": [
+        "pytest -q"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "recent_referee_miss_subsystem"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_note": null
+}

@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/contract-evidence.schema.json",
+  "title": "Contract Evidence Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "issue_id",
+    "repo",
+    "pr_number",
+    "lane_tag",
+    "contract_snapshot_hash",
+    "execution_plan_digest",
+    "acceptance_criteria",
+    "edge_cases",
+    "risk_flags",
+    "migration_note",
+    "rollback_note",
+    "plan_deviation_declared",
+    "plan_deviation_note"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "issue_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "repo": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pr_number": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "lane_tag": {
+      "type": "string",
+      "enum": ["local-app/autonomous", "client/guarded"]
+    },
+    "contract_snapshot_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution_plan_digest": {
+      "type": "string",
+      "minLength": 1
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/criterionEvidence"
+      }
+    },
+    "edge_cases": {
+      "type": "array",
+      "minItems": 0,
+      "items": {
+        "$ref": "#/$defs/edgeCaseEvidence"
+      }
+    },
+    "risk_flags": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "none",
+          "persistence_change",
+          "migration",
+          "destructive_action",
+          "interface_contract",
+          "cross_module_refactor",
+          "external_integration",
+          "architectural_risk",
+          "recent_referee_miss_subsystem",
+          "needs_replan_history"
+        ]
+      }
+    },
+    "migration_note": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "rollback_note": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "plan_deviation_declared": {
+      "type": "boolean"
+    },
+    "plan_deviation_note": {
+      "type": ["string", "null"],
+      "minLength": 1
+    }
+  },
+  "$defs": {
+    "repoPath": {
+      "type": "string",
+      "minLength": 1
+    },
+    "criterionEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "test_files"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_files": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/repoPath"
+          }
+        },
+        "manual_checks": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "waiver": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason", "linked_acceptance_step_id"],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "linked_acceptance_step_id": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "edgeCaseEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "test_files": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/repoPath"
+          }
+        },
+        "waiver": {
+          "$ref": "#/$defs/waiver"
+        }
+      },
+      "oneOf": [
+        {
+          "required": ["test_files"],
+          "properties": {
+            "test_files": {
+              "minItems": 1
+            }
+          }
+        },
+        {
+          "required": ["waiver"]
+        }
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "risk_flags": {
+            "contains": {
+              "enum": ["migration", "persistence_change"]
+            }
+          }
+        },
+        "required": ["risk_flags"]
+      },
+      "then": {
+        "properties": {
+          "migration_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_flags": {
+            "contains": {
+              "enum": ["migration", "persistence_change", "destructive_action"]
+            }
+          }
+        },
+        "required": ["risk_flags"]
+      },
+      "then": {
+        "properties": {
+          "rollback_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "plan_deviation_declared": {
+            "const": true
+          }
+        },
+        "required": ["plan_deviation_declared"]
+      },
+      "then": {
+        "properties": {
+          "plan_deviation_note": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "plan_deviation_declared": {
+            "const": false
+          }
+        },
+        "required": ["plan_deviation_declared"]
+      },
+      "then": {
+        "properties": {
+          "plan_deviation_note": {
+            "const": null
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "risk_flags": {
+            "contains": {
+              "const": "none"
+            }
+          }
+        },
+        "required": ["risk_flags"]
+      },
+      "then": {
+        "properties": {
+          "risk_flags": {
+            "maxItems": 1
+          }
+        }
+      }
+    }
+  ]
+}
