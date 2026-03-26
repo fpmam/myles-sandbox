@@ -23,9 +23,52 @@ def gh_api(path: str) -> dict:
     return json.loads(result.stdout)
 
 
+def check_run_sort_key(item: dict) -> tuple[int, str, str]:
+    return (
+        int(item.get("id") or 0),
+        str(item.get("completed_at") or ""),
+        str(item.get("started_at") or ""),
+    )
+
+
+def select_latest_check_runs(payload: dict) -> dict[str, dict]:
+    latest: dict[str, dict] = {}
+    for item in payload.get("check_runs", []):
+        name = item.get("name")
+        if not name:
+            continue
+        current = latest.get(name)
+        if current is None or check_run_sort_key(item) > check_run_sort_key(current):
+            latest[name] = item
+    return latest
+
+
 def status_for_checks(repo: str, head_sha: str) -> dict[str, dict]:
     payload = gh_api(f"/repos/{repo}/commits/{head_sha}/check-runs")
-    return {item["name"]: item for item in payload.get("check_runs", [])}
+    return select_latest_check_runs(payload)
+
+
+def required_check_state(
+    checks: dict[str, dict], required_checks: list[str]
+) -> tuple[list[str], list[str], list[str]]:
+    missing = [name for name in required_checks if name not in checks]
+    if missing:
+        return missing, [], []
+
+    incomplete = [
+        name
+        for name in required_checks
+        if checks[name].get("status") != "completed"
+    ]
+    if incomplete:
+        return [], incomplete, []
+
+    failed = [
+        name
+        for name in required_checks
+        if checks[name].get("conclusion") != "success"
+    ]
+    return [], [], failed
 
 
 def main() -> None:
@@ -40,25 +83,15 @@ def main() -> None:
     deadline = time.time() + args.timeout_seconds
     while time.time() < deadline:
         checks = status_for_checks(args.repo, args.head_sha)
-        missing = [name for name in args.required_checks if name not in checks]
+        missing, incomplete, failed = required_check_state(checks, args.required_checks)
         if missing:
             time.sleep(args.poll_seconds)
             continue
 
-        incomplete = [
-            name
-            for name in args.required_checks
-            if checks[name]["status"] != "completed"
-        ]
         if incomplete:
             time.sleep(args.poll_seconds)
             continue
 
-        failed = [
-            name
-            for name in args.required_checks
-            if checks[name]["conclusion"] != "success"
-        ]
         if failed:
             raise CheckRunError(f"Required checks did not pass: {failed}")
 

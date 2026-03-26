@@ -1,0 +1,39 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-132",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "description": "The check-run wait helper succeeds only when every required named check for the requested head SHA has completed successfully, and it reports timeout and failure states clearly."
+    },
+    {
+      "id": "AC-2",
+      "description": "Referee artifact selection resolves the correct successful Claude Referee Review run for the requested PR head instead of relying on first-match ordering."
+    },
+    {
+      "id": "AC-3",
+      "description": "Deterministic local tests cover rerun and multi-match edge cases for the hosted check-run polling and referee-artifact selection helpers."
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "description": "Missing required checks keep polling until timeout instead of producing a false success."
+    },
+    {
+      "id": "EC-2",
+      "description": "A newer completed-but-failed required check overrides an older passing run and fails the helper."
+    },
+    {
+      "id": "EC-3",
+      "description": "Expired or mismatched referee artifacts are rejected instead of being treated as valid Checker inputs."
+    }
+  ],
+  "risk_flags": [
+    "external_integration"
+  ],
+  "snapshot_hash": "0bfa9b6c376f1906d149116d6a9ed9dcda513f4180b4649fa3fd0de0beb0fd21",
+  "snapshotted_at": "2026-03-26T12:24:00Z"
+}
