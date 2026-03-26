@@ -1,0 +1,58 @@
+{
+  "schema_version": "1.0",
+  "issue_id": "AND-132",
+  "repo": "fpmam/myles-sandbox",
+  "lane_tag": "local-app/autonomous",
+  "contract_snapshot_hash": "0bfa9b6c376f1906d149116d6a9ed9dcda513f4180b4649fa3fd0de0beb0fd21",
+  "brief_link": "https://linear.app/andrewos/issue/AND-132/harden-hosted-refereechecker-run-matching-for-reruns",
+  "approach_summary": "Make the hosted-review helper scripts choose the latest relevant GitHub check and workflow run deterministically under reruns, add deterministic coverage for those cases, and keep the change scoped to workflow plumbing rather than another operating-model rewrite.",
+  "subsystem_ids": [
+    "workflow"
+  ],
+  "acceptance_criteria": [
+    {
+      "id": "AC-1",
+      "planned_checks": [
+        "pytest -q tests/test_wait_for_check_runs.py"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "planned_checks": [
+        "pytest -q tests/test_download_referee_artifact.py"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "planned_checks": [
+        "pytest -q tests/test_wait_for_check_runs.py tests/test_download_referee_artifact.py"
+      ]
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "EC-1",
+      "planned_checks": [
+        "pytest -q tests/test_wait_for_check_runs.py"
+      ]
+    },
+    {
+      "id": "EC-2",
+      "planned_checks": [
+        "pytest -q tests/test_wait_for_check_runs.py"
+      ]
+    },
+    {
+      "id": "EC-3",
+      "planned_checks": [
+        "pytest -q tests/test_download_referee_artifact.py"
+      ]
+    }
+  ],
+  "risk_flags": [
+    "external_integration"
+  ],
+  "migration_note": null,
+  "rollback_note": null,
+  "plan_deviation_note": null
+}

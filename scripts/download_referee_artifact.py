@@ -24,16 +24,35 @@ def gh_api(path: str) -> dict:
     return json.loads(result.stdout)
 
 
-def select_run_id(payload: dict, workflow_name: str) -> int:
+def workflow_run_sort_key(run: dict) -> tuple[int, str, str, int]:
+    return (
+        int(run.get("run_attempt") or 0),
+        str(run.get("updated_at") or ""),
+        str(run.get("created_at") or ""),
+        int(run.get("id") or 0),
+    )
+
+
+def select_run_id(payload: dict, workflow_name: str, head_sha: str) -> int:
+    candidates = []
     for run in payload.get("workflow_runs", []):
         if run.get("name") != workflow_name:
+            continue
+        if run.get("head_sha") != head_sha:
             continue
         if run.get("status") != "completed":
             continue
         if run.get("conclusion") != "success":
             continue
-        return int(run["id"])
-    raise ArtifactError(f"No successful '{workflow_name}' run matched the requested head SHA")
+        candidates.append(run)
+
+    if not candidates:
+        raise ArtifactError(
+            f"No successful '{workflow_name}' run matched head SHA {head_sha}"
+        )
+
+    latest = max(candidates, key=workflow_run_sort_key)
+    return int(latest["id"])
 
 
 def artifact_present(payload: dict, artifact_name: str) -> bool:
@@ -83,7 +102,7 @@ def main() -> None:
         }
     )
     runs = gh_api(f"/repos/{args.repo}/actions/runs?{query}")
-    run_id = select_run_id(runs, args.workflow_name)
+    run_id = select_run_id(runs, args.workflow_name, args.head_sha)
     artifacts = gh_api(f"/repos/{args.repo}/actions/runs/{run_id}/artifacts")
     if not artifact_present(artifacts, args.artifact_name):
         raise ArtifactError(
